@@ -308,4 +308,67 @@ if (form) {
             reviewText.classList.remove('input-error');
         }
 
-        const coverRaw = coverUrl ?
+        const coverRaw = coverUrl ? coverUrl.value.trim() : '';
+        if (coverUrl && coverRaw !== '' && !isValidImageUrl(coverRaw)) {
+            coverUrl.classList.add('input-error');
+            isValid = false;
+        } else if (coverUrl) {
+            coverUrl.classList.remove('input-error');
+        }
+
+        if (!isValid) return;
+
+        try {
+            const ratingNum = parseInt(ratingRange.value, 10);
+            const titleVal = albumTitle.value.trim();
+            const textVal = reviewText.value.trim();
+            const genreVal = genreInput && genreInput.value.trim() ? genreInput.value.trim() : 'Неизвестен';
+            const coverVal = coverRaw || FALLBACK_COVER;
+            const authorVal = authorInput && authorInput.value.trim() ? authorInput.value.trim() : 'Аноним';
+
+            const albumRes = await fetch(`${API_BASE}/albums`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    title: titleVal,
+                    artist: 'Неизвестный',
+                    genre: genreVal,
+                    cover_url: coverVal,
+                    rating_average: ratingNum
+                })
+            });
+
+            if (!albumRes.ok) throw new Error('Ошибка создания альбома');
+            const newAlbum = await albumRes.json();
+
+            const reviewRes = await fetch(`${API_BASE}/reviews`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    album_id: newAlbum.id,
+                    author: authorVal,
+                    rating: ratingNum,
+                    text: textVal,
+                    created_at: new Date().toISOString().split('T')[0]
+                })
+            });
+
+            if (!reviewRes.ok) throw new Error('Ошибка создания рецензии');
+            const createdReview = await reviewRes.json();
+
+            allAlbums.push(newAlbum);
+            allReviews.unshift(createdReview);
+
+            renderReviews();
+
+            form.reset();
+            resetCoverPreview();
+            if (ratingValue) ratingValue.textContent = '5';
+            closeModal();
+            showToast('Рецензия сохранена', 'success');
+        } catch (e) {
+            console.error(e);
+            showToast('Внутренняя ошибка', 'error');
+        }
+    });
+}
