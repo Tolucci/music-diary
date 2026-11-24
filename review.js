@@ -1,3 +1,5 @@
+const API_URL = 'https://music-dairy-api-gormikmusic.msk1.amvera.tech';
+
 // Получаем контейнер для вывода
 const detailsContainer = document.getElementById('review-details');
 
@@ -17,12 +19,13 @@ async function loadReviewDetails() {
 
     try {
         // 1. Запрашиваем отзыв по ID
-        const reviewRes = await fetch(`http://localhost:3001/reviews/${reviewId}`);
+        const reviewRes = await fetch(`${API_URL}/reviews/${reviewId}`);
         if (!reviewRes.ok) throw new Error('Рецензия не найдена');
         const review = await reviewRes.json();
 
         // 2. Запрашиваем альбом, к которому относится отзыв
-        const albumRes = await fetch(`http://localhost:3001/albums/${review.album_id}`);
+        const albumRes = await fetch(`${API_URL}/albums/${review.album_id}`);
+        if (!albumRes.ok) throw new Error('Альбом не найден');
         const album = await albumRes.json();
 
         // 3. Отрисовываем страницу
