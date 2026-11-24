@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Music Diary</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <header class="header">
+        <div class="container header-container">
+            <a href="#" class="logo">Music Diary</a>
+            <button class="btn-add" id="btnAdd">+</button>
+        </div>
+    </header>
+
+    <main class="main">
+        <div class="container">
+            <h2 class="page-title">Все рецензии</h2>
+
+            <!-- ПАНЕЛЬ ПОИСКА И СОРТИРОВКИ -->
+            <div class="controls-panel">
+                <input type="text" id="searchInput" placeholder="Поиск по альбому или автору...">
+                <select id="sortSelect">
+                    <option value="default">По умолчанию</option>
+                    <option value="rating-high">Оценка: по убыванию</option>
+                    <option value="rating-low">Оценка: по возрастанию</option>
+                    <option value="date-new">Сначала новые</option>
+                    <option value="date-old">Сначала старые</option>
+                    <option value="title">По названию альбома (А-Я)</option>
+                </select>
+            </div>
+
+            <div class="reviews-grid" id="reviews-container"></div>
+        </div>
+    </main>
+
+    <!-- МОДАЛЬНОЕ ОКНО С ФОРМОЙ -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal-content">
+            <button class="modal-close" id="modalClose">×</button>
+
+            <form class="add-form" id="addReviewForm">
+                <div class="form-top-row">
+                    <div class="form-inputs">
+                        <input type="text" id="albumTitle" name="albumTitle" placeholder="Название альбома">
+                        <input type="text" id="genre" name="genre" placeholder="Жанр">
+                        <!-- Добавили поле автора -->
+                        <input type="text" id="authorName" name="authorName" placeholder="Ваше имя (автор)">
+                    </div>
+                    <div class="form-photo">
+                        <input type="text" id="coverUrl" name="coverUrl" placeholder="URL обложки">
+                        <img id="coverPreview" alt="Превью обложки">
+                    </div>
+                </div>
+
+                <div class="form-rating-row">
+                    <label for="ratingRange">Оценка</label>
+                    <!-- Ограничили оценку до 5 -->
+                    <input type="range" id="ratingRange" name="rating" min="1" max="5" value="5">
+                    <span id="ratingValue">5</span>
+                </div>
+
+                <textarea id="reviewText" name="reviewText" placeholder="Обзор"></textarea>
+
+                <div class="form-buttons">
+                    <button type="button" class="btn-cancel" id="btnCancel">Отмена</button>
+                    <button type="submit" class="btn-submit">Опубликовать</button>
+                </div>
+            </form>
+
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

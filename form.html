@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Добавить рецензию - Music Diary</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- Шапка сайта -->
+    <header class="header">
+        <div class="container header-container">
+            <a href="index.html" class="logo">Music Diary</a>
+            <a href="index.html" class="btn-add">+</a>
+        </div>
+    </header>
+
+    <!-- Основной контент -->
+    <main class="main">
+        <div class="container">
+            
+            <form class="add-form" id="addReviewForm">
+                
+                <div class="form-top-row">
+                    <div class="form-inputs">
+                        <!-- Убрали required -->
+                        <input type="text" id="albumTitle" name="albumTitle" placeholder="Название альбома">
+                        <input type="text" id="genre" name="genre" placeholder="Жанр">
+                    </div>
+                    <div class="form-photo">
+                        <label for="coverFile" class="photo-label">Загрузить<br>фото</label>
+                        <input type="file" id="coverFile" name="coverFile" accept="image/*" style="display: none;">
+                    </div>
+                </div>
+
+                <div class="form-rating-row">
+                    <label for="ratingRange">Оценка</label>
+                    <input type="range" id="ratingRange" name="rating" min="1" max="10" value="5">
+                    <span id="ratingValue">5</span>
+                </div>
+
+                <!-- Убрали required -->
+                <textarea id="reviewText" name="reviewText" placeholder="Обзор"></textarea>
+
+                <div class="form-buttons">
+                    <button type="button" class="btn-cancel" onclick="window.location.href='index.html'">Отмена</button>
+                    <button type="submit" class="btn-submit">Опубликовать</button>
+                </div>
+
+            </form>
+
+        </div>
+    </main>
+
+    <!-- Подключаем скрипт -->
+    <script src="form.js"></script>
+</body>
+</html>
