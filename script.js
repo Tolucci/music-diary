@@ -33,6 +33,26 @@ function escapeHtml(value) {
         .replace(/'/g, '&#39;');
 }
 
+function getAlbumId(review) {
+    return review?.album_id ?? review?.albumId ?? '';
+}
+
+function findAlbumForReview(review) {
+    const targetId = String(getAlbumId(review));
+    return allAlbums.find(a => String(a.id) === targetId) || null;
+}
+
+function parseTimestamp(dateValue) {
+    if (!dateValue) return 0;
+    const ts = new Date(dateValue).getTime();
+    return Number.isFinite(ts) ? ts : 0;
+}
+
+function parseRating(ratingValue) {
+    const num = Number(ratingValue);
+    return Number.isFinite(num) ? num : -Infinity;
+}
+
 
 // ==========================================
 // TOAST-УВЕДОМЛЕНИЯ
@@ -119,10 +139,15 @@ async function loadData() {
             throw new Error('Ошибка ответа сервера');
         }
 
-        allAlbums = await albumsRes.json();
-        allReviews = await reviewsRes.json();
+        const albumsData = await albumsRes.json();
+        const reviewsData = await reviewsRes.json();
+
+        allAlbums = Array.isArray(albumsData) ? albumsData : (albumsData.albums || []);
+        allReviews = Array.isArray(reviewsData) ? reviewsData : (reviewsData.reviews || []);
+
         renderReviews();
     } catch (error) {
+        console.error(error);
         container.innerHTML = '<p style="color: red;">Ошибка загрузки. Сервер запущен?</p>';
     }
 }
@@ -134,10 +159,10 @@ function renderReviews() {
     const sortValue = sortSelect ? sortSelect.value : 'default';
 
     const filteredReviews = allReviews.filter(review => {
-        const album = allAlbums.find(a => String(a.id) === String(review.album_id));
-        const albumTitle = album && album.title ? album.title.toLowerCase() : '';
-        const author = review.author ? review.author.toLowerCase() : '';
-        const text = review.text ? review.text.toLowerCase() : '';
+        const album = findAlbumForReview(review);
+        const albumTitle = album && album.title ? String(album.title).toLowerCase() : '';
+        const author = review.author ? String(review.author).toLowerCase() : '';
+        const text = review.text ? String(review.text).toLowerCase() : '';
         return (
             albumTitle.includes(searchText) ||
             author.includes(searchText) ||
@@ -148,20 +173,26 @@ function renderReviews() {
     const sortedReviews = [...filteredReviews];
 
     if (sortValue === 'rating-high') {
-        sortedReviews.sort((a, b) => Number(b.rating) - Number(a.rating));
+        sortedReviews.sort((a, b) => parseRating(b.rating) - parseRating(a.rating));
     } else if (sortValue === 'rating-low') {
-        sortedReviews.sort((a, b) => Number(a.rating) - Number(b.rating));
+        sortedReviews.sort((a, b) => parseRating(a.rating) - parseRating(b.rating));
     } else if (sortValue === 'date-new') {
-        sortedReviews.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+        sortedReviews.sort((a, b) => {
+            const diff = parseTimestamp(b.created_at) - parseTimestamp(a.created_at);
+            return diff !== 0 ? diff : Number(b.id || 0) - Number(a.id || 0);
+        });
     } else if (sortValue === 'date-old') {
-        sortedReviews.sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0));
+        sortedReviews.sort((a, b) => {
+            const diff = parseTimestamp(a.created_at) - parseTimestamp(b.created_at);
+            return diff !== 0 ? diff : Number(a.id || 0) - Number(b.id || 0);
+        });
     } else if (sortValue === 'title') {
         sortedReviews.sort((a, b) => {
-            const albumA = allAlbums.find(alb => String(alb.id) === String(a.album_id));
-            const albumB = allAlbums.find(alb => String(alb.id) === String(b.album_id));
-            const titleA = albumA && albumA.title ? albumA.title : '';
-            const titleB = albumB && albumB.title ? albumB.title : '';
-            return titleA.localeCompare(titleB, 'ru');
+            const albumA = findAlbumForReview(a);
+            const albumB = findAlbumForReview(b);
+            const titleA = albumA && albumA.title ? String(albumA.title).trim() : '';
+            const titleB = albumB && albumB.title ? String(albumB.title).trim() : '';
+            return titleA.localeCompare(titleB, 'ru', { sensitivity: 'base' });
         });
     }
 
@@ -172,7 +203,7 @@ function renderReviews() {
     }
 
     sortedReviews.forEach(review => {
-        const album = allAlbums.find(a => String(a.id) === String(review.album_id));
+        const album = findAlbumForReview(review);
         const albumTitle = album && album.title ? album.title : 'Неизвестный альбом';
         const coverUrl = album ? album.cover_url : '';
 
@@ -259,7 +290,7 @@ if (form) {
         const genreInput = document.getElementById('genre');
         const reviewText = document.getElementById('reviewText');
         const coverUrl = document.getElementById('coverUrl');
-        const authorInput = document.getElementById('authorName'); // Поле автора
+        const authorInput = document.getElementById('authorName');
 
         let isValid = true;
 
@@ -277,76 +308,4 @@ if (form) {
             reviewText.classList.remove('input-error');
         }
 
-        const coverRaw = coverUrl ? coverUrl.value.trim() : '';
-        if (coverUrl && coverRaw !== '' && !isValidImageUrl(coverRaw)) {
-            coverUrl.classList.add('input-error');
-            isValid = false;
-        } else if (coverUrl) {
-            coverUrl.classList.remove('input-error');
-        }
-
-        if (!isValid) return;
-
-        try {
-            const ratingNum = parseInt(ratingRange.value, 10);
-            const titleVal = albumTitle.value.trim();
-            const textVal = reviewText.value.trim();
-            const genreVal = genreInput && genreInput.value.trim() ? genreInput.value.trim() : 'Неизвестен';
-            const coverVal = coverRaw || FALLBACK_COVER;
-            // Берем имя из поля или ставим Аноним
-            const authorVal = authorInput && authorInput.value.trim() ? authorInput.value.trim() : 'Аноним';
-
-            const albumRes = await fetch(`${API_BASE}/albums`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    title: titleVal,
-                    artist: 'Неизвестный',
-                    genre: genreVal,
-                    cover_url: coverVal,
-                    rating_average: ratingNum
-                })
-            });
-
-            if (!albumRes.ok) throw new Error('Ошибка создания альбома');
-            const newAlbum = await albumRes.json();
-
-            const reviewRes = await fetch(`${API_BASE}/reviews`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    album_id: newAlbum.id,
-                    author: authorVal, // Отправляем имя
-                    rating: ratingNum,
-                    text: textVal,
-                    created_at: new Date().toISOString().split('T')[0]
-                })
-            });
-
-            if (!reviewRes.ok) throw new Error('Ошибка создания рецензии');
-            const createdReview = await reviewRes.json();
-
-            allAlbums.push(newAlbum);
-            allReviews.unshift(createdReview);
-
-            const card = createReviewCard({
-                id: createdReview.id,
-                albumTitle: titleVal,
-                coverUrl: newAlbum.cover_url || coverVal,
-                rating: ratingNum,
-                author: authorVal, // Показываем имя
-                text: textVal
-            });
-            container.prepend(card);
-
-            form.reset();
-            resetCoverPreview();
-            if (ratingValue) ratingValue.textContent = '5';
-            closeModal();
-            showToast('Рецензия сохранена', 'success');
-        } catch (e) {
-            console.error(e); // Выводим ошибку в консоль для отладки
-            showToast('Внутренняя ошибка', 'error');
-        }
-    });
-}
+        const coverRaw = coverUrl ?
